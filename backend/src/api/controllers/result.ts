@@ -825,7 +825,7 @@ async function calculateXp(
   const totalXp =
     Math.round((xpAfterAccuracy + incompleteXp) * gainMultiplier) + dailyBonus;
 
-  if (gainMultiplier > 1) {
+  if (gainMultiplier !== 1) {
     // breakdown.push([
     //   "configMultiplier",
     //   Math.round((xpAfterAccuracy + incompleteXp) * (gainMultiplier - 1)),
