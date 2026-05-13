@@ -86,7 +86,7 @@ export function Navigation(props: {
               setPage(page - 1);
               return {
                 status: "success",
-                message: "Navigating to page " + page,
+                message: `Navigating to page ${page}`,
                 showNotification: false,
               };
             },

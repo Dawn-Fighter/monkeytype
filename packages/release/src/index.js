@@ -144,7 +144,7 @@ const updatePackage = (newVersion) => {
   // Write the updated JSON back to package.json
   fs.writeFileSync(
     packagePath,
-    JSON.stringify(packageJson, null, 2) + "\n",
+    `${JSON.stringify(packageJson, null, 2)}\n`,
     "utf8",
   );
 
