@@ -19,14 +19,16 @@ export function getMatchingLigatureOverride(
 
 export function shouldIgnoreLigatureCompletion(
   data: string,
-  testInput: string,
+  currentInput: string,
   currentWord: string,
 ): boolean {
-  const previousTargetChar = currentWord[testInput.length - 1];
+  const previousTargetChar = currentWord[currentInput.length - 1];
   if (previousTargetChar === undefined) return false;
 
   const override = ligatureInputOverrides.get(previousTargetChar);
   if (override === undefined) return false;
 
-  return testInput.endsWith(previousTargetChar) && data === override.slice(1);
+  return (
+    currentInput.endsWith(previousTargetChar) && data === override.slice(1)
+  );
 }
