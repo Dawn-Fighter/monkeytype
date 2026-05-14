@@ -37,6 +37,10 @@ import {
   isCharCorrect,
   shouldInsertSpaceCharacter,
 } from "../helpers/validation";
+import {
+  getMatchingLigatureOverride,
+  shouldIgnoreLigatureCompletion,
+} from "../helpers/ligatures";
 
 const charOverrides = new Map<string, string>([
   ["…", "..."],
@@ -79,6 +83,18 @@ export async function onInsertText(options: OnInsertTextParams): Promise<void> {
         lastInMultiIndex: i === options.data.length - 1,
       });
     }
+    return;
+  }
+
+  if (
+    shouldIgnoreLigatureCompletion(
+      options.data,
+      TestInput.input.current,
+      TestWords.words.getCurrentText(),
+    )
+  ) {
+    setInputElementValue(inputValue.slice(0, -options.data.length));
+    TestInput.input.syncWithInputElement();
     return;
   }
 
@@ -301,6 +317,12 @@ function normalizeDataAndUpdateInputIfNeeded(
   ) {
     replaceInputElementLastValueChar(targetChar);
     normalizedData = targetChar;
+  } else {
+    const ligatureOverride = getMatchingLigatureOverride(data, targetChar);
+    if (ligatureOverride !== null) {
+      replaceInputElementLastValueChar(ligatureOverride);
+      normalizedData = ligatureOverride;
+    }
   }
   return normalizedData;
 }
