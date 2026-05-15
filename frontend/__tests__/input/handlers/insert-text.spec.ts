@@ -19,12 +19,15 @@ const mocks = vi.hoisted(() => ({
   incrementKeypressErrors: vi.fn(),
 }));
 
-vi.mock("../../../src/ts/test/test-ui", () => ({}));
+vi.mock("../../../src/ts/test/test-ui", () => ({
+  afterTestTextInput: vi.fn(),
+}));
 vi.mock("../../../src/ts/test/test-state", () => ({
   activeWordIndex: 0,
   isActive: true,
 }));
 vi.mock("../../../src/ts/test/test-logic", () => ({
+  areAllTestWordsGenerated: vi.fn(() => false),
   startTest: vi.fn(),
 }));
 vi.mock("../../../src/ts/test/test-input", () => ({
@@ -72,6 +75,7 @@ vi.mock("../../../src/ts/test/weak-spot", () => ({
   updateScore: vi.fn(),
 }));
 vi.mock("../../../src/ts/legacy-states/composition", () => ({
+  getComposing: vi.fn(() => false),
   getData: vi.fn(() => ""),
 }));
 vi.mock("../../../src/ts/input/state", () => ({
