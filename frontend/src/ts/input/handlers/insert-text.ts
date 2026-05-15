@@ -158,13 +158,13 @@ export async function onInsertText(options: OnInsertTextParams): Promise<void> {
   const correct =
     pendingLigatureCompletionStatus === "skipped"
       ? false
-      : funboxCorrect ??
+      : (funboxCorrect ??
         isCharCorrect({
           data,
           inputValue: testInput,
           targetWord: currentWord,
           correctShiftUsed,
-        });
+        }));
 
   // word navigation check
   const noSpaceForce =
