@@ -38,8 +38,10 @@ import {
   shouldInsertSpaceCharacter,
 } from "../helpers/validation";
 import {
+  getLigatureCompletion,
   getMatchingLigatureOverride,
-  shouldIgnoreLigatureCompletion,
+  getPendingLigatureCompletionStatus,
+  setPendingLigatureCompletion,
 } from "../helpers/ligatures";
 
 const charOverrides = new Map<string, string>([
@@ -86,13 +88,11 @@ export async function onInsertText(options: OnInsertTextParams): Promise<void> {
     return;
   }
 
-  if (
-    shouldIgnoreLigatureCompletion(
-      options.data,
-      TestInput.input.current,
-      TestWords.words.getCurrentText(),
-    )
-  ) {
+  const pendingLigatureCompletionStatus = getPendingLigatureCompletionStatus(
+    options.data,
+    TestInput.input.current,
+  );
+  if (pendingLigatureCompletionStatus === "complete") {
     setInputElementValue(inputValue.slice(0, -options.data.length));
     TestInput.input.syncWithInputElement();
     return;
@@ -156,13 +156,15 @@ export async function onInsertText(options: OnInsertTextParams): Promise<void> {
     currentWord[(testInput + data).length - 1] ?? "",
   );
   const correct =
-    funboxCorrect ??
-    isCharCorrect({
-      data,
-      inputValue: testInput,
-      targetWord: currentWord,
-      correctShiftUsed,
-    });
+    pendingLigatureCompletionStatus === "skipped"
+      ? false
+      : funboxCorrect ??
+        isCharCorrect({
+          data,
+          inputValue: testInput,
+          targetWord: currentWord,
+          correctShiftUsed,
+        });
 
   // word navigation check
   const noSpaceForce =
@@ -322,6 +324,14 @@ function normalizeDataAndUpdateInputIfNeeded(
     if (ligatureOverride !== null) {
       replaceInputElementLastValueChar(ligatureOverride);
       normalizedData = ligatureOverride;
+
+      const ligatureCompletion = getLigatureCompletion(targetChar);
+      if (ligatureCompletion !== null) {
+        setPendingLigatureCompletion(
+          ligatureCompletion,
+          testInput.length + ligatureOverride.length,
+        );
+      }
     }
   }
   return normalizedData;

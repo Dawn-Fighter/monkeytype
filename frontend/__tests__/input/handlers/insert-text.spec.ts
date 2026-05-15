@@ -5,8 +5,9 @@ import {
 } from "../../../src/ts/input/input-element";
 import { onInsertText } from "../../../src/ts/input/handlers/insert-text";
 import {
+  getLigatureCompletion,
   getMatchingLigatureOverride,
-  shouldIgnoreLigatureCompletion,
+  resetPendingLigatureCompletion,
 } from "../../../src/ts/input/helpers/ligatures";
 
 const mocks = vi.hoisted(() => ({
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
     current: "",
     syncWithInputElement: vi.fn(),
   },
+  incrementKeypressErrors: vi.fn(),
 }));
 
 vi.mock("../../../src/ts/test/test-ui", () => ({}));
@@ -30,7 +32,7 @@ vi.mock("../../../src/ts/test/test-input", () => ({
   corrected: { update: vi.fn() },
   incrementAccuracy: vi.fn(),
   incrementKeypressCount: vi.fn(),
-  incrementKeypressErrors: vi.fn(),
+  incrementKeypressErrors: mocks.incrementKeypressErrors,
   pushKeypressWord: vi.fn(),
   pushMissedWord: vi.fn(),
   setBurstStart: vi.fn(),
@@ -103,6 +105,7 @@ describe("insert-text ligature input overrides", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    resetPendingLigatureCompletion();
     setInputElementValue("");
   });
 
@@ -119,23 +122,28 @@ describe("insert-text ligature input overrides", () => {
   );
 
   it.each([
-    ["e", "œ", "œuvre"],
-    ["E", "Œ", "ŒUVRE"],
-    ["e", "æ", "æther"],
-    ["E", "Æ", "ÆTHER"],
-    ["e", "bœ", "bœuf"],
-  ])("ignores completion '%s' after '%s'", (data, input, word) => {
-    expect(shouldIgnoreLigatureCompletion(data, input, word)).toBe(true);
+    ["œ", "e"],
+    ["Œ", "E"],
+    ["æ", "e"],
+    ["Æ", "E"],
+  ])("gets completion '%s' after '%s'", (target, completion) => {
+    expect(getLigatureCompletion(target)).toBe(completion);
   });
 
   it("does not normalize unrelated input", () => {
     expect(getMatchingLigatureOverride("e", "œ")).toBeNull();
-    expect(shouldIgnoreLigatureCompletion("u", "œ", "œuvre")).toBe(false);
+    expect(getLigatureCompletion("o")).toBeNull();
   });
 
   it("removes the completion character and keeps input state synced", async () => {
     mocks.currentWord = "œuvre";
-    mocks.input.current = "œ";
+
+    setInputElementValue("o");
+    await onInsertText({
+      now: performance.now(),
+      data: "o",
+    });
+
     setInputElementValue("œe");
 
     await onInsertText({
@@ -145,6 +153,26 @@ describe("insert-text ligature input overrides", () => {
 
     expect(getInputElementValue().inputValue).toBe("œ");
     expect(mocks.input.current).toBe("œ");
-    expect(mocks.input.syncWithInputElement).toHaveBeenCalledOnce();
+    expect(mocks.input.syncWithInputElement).toHaveBeenCalledTimes(2);
+    expect(mocks.incrementKeypressErrors).not.toHaveBeenCalled();
+  });
+
+  it("penalizes skipping the ligature completion character", async () => {
+    mocks.currentWord = "œuvre";
+
+    setInputElementValue("o");
+    await onInsertText({
+      now: performance.now(),
+      data: "o",
+    });
+
+    setInputElementValue("œu");
+    await onInsertText({
+      now: performance.now(),
+      data: "u",
+    });
+
+    expect(mocks.input.current).toBe("œu");
+    expect(mocks.incrementKeypressErrors).toHaveBeenCalledOnce();
   });
 });

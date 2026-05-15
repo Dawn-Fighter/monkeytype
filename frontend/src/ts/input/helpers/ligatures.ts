@@ -5,6 +5,13 @@ const ligatureInputOverrides = new Map<string, string>([
   ["Æ", "AE"],
 ]);
 
+let pendingLigatureCompletion: {
+  completion: string;
+  inputLength: number;
+} | null = null;
+
+type PendingLigatureCompletionStatus = "complete" | "skipped" | null;
+
 export function getMatchingLigatureOverride(
   data: string,
   targetChar: string | undefined,
@@ -17,18 +24,39 @@ export function getMatchingLigatureOverride(
   return targetChar;
 }
 
-export function shouldIgnoreLigatureCompletion(
+export function getLigatureCompletion(
+  targetChar: string | undefined,
+): string | null {
+  if (targetChar === undefined) return null;
+
+  const override = ligatureInputOverrides.get(targetChar);
+  return override?.slice(1) ?? null;
+}
+
+export function setPendingLigatureCompletion(
+  completion: string,
+  inputLength: number,
+): void {
+  pendingLigatureCompletion = { completion, inputLength };
+}
+
+export function resetPendingLigatureCompletion(): void {
+  pendingLigatureCompletion = null;
+}
+
+export function getPendingLigatureCompletionStatus(
   data: string,
   currentInput: string,
-  currentWord: string,
-): boolean {
-  const previousTargetChar = currentWord[currentInput.length - 1];
-  if (previousTargetChar === undefined) return false;
+): PendingLigatureCompletionStatus {
+  if (pendingLigatureCompletion === null) return null;
 
-  const override = ligatureInputOverrides.get(previousTargetChar);
-  if (override === undefined) return false;
+  if (currentInput.length !== pendingLigatureCompletion.inputLength) {
+    resetPendingLigatureCompletion();
+    return null;
+  }
 
-  return (
-    currentInput.endsWith(previousTargetChar) && data === override.slice(1)
-  );
+  const completionMatched = data === pendingLigatureCompletion.completion;
+  resetPendingLigatureCompletion();
+
+  return completionMatched ? "complete" : "skipped";
 }
